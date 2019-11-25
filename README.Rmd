@@ -1,0 +1,133 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r chunkopts, eval = TRUE, echo = FALSE}
+knitr::opts_chunk$set(eval = TRUE, echo = TRUE, message = FALSE, warning = TRUE, tidy = FALSE, cache = TRUE, include = TRUE, dpi = 72, fig.width = 9, fig.height = 9, fig.align = "center", results = "markup",
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "vignettes/README-"
+)
+
+```
+
+# SOmap, SO-CPR data, and other things
+
+Ben Raymond, AAD
+
+November 2019
+
+## Preparation
+
+Install some packages if necessary:
+
+```{r}
+have_pkg <- function(p) requireNamespace(p, quietly = TRUE)
+github_pkgs <- c("AustralianAntarcticDivision/blueant", "AustralianAntarcticDivision/SOmap")
+needed <- sapply(github_pkgs, function(z) !have_pkg(basename(z)))
+if (any(needed)) {
+  if (!have_pkg("remotes")) install.packages("remotes")
+  for (p in github_pkgs[needed]) remotes::install_github(p)
+}
+
+pkgs <- c("data.table", "dplyr", "ggplot2", "lubridate")
+needed <- !sapply(pkgs, have_pkg)
+if (any(needed)) install.packages(pkgs[needed])
+
+```
+
+## Download the SO-CPR data and read it in
+
+```{r}
+library(blueant)
+library(data.table)
+library(lubridate)
+
+data_dir <- tempdir()
+status <- bb_get(sources("SO-CPR"), local_file_root = data_dir)
+
+x <- fread(status$files[[1]]$file, data.table = FALSE)
+x$date <- dmy(x$Date)
+
+## the data looks like
+dplyr::glimpse(x)
+
+```
+
+## Semi-automatic maps
+
+Just a base map:
+
+```{r}
+library(SOmap)
+
+SOmap(trim = -40)
+
+```
+
+To which we can add stuff:
+
+```{r}
+SOmap(trim = -40)
+SOplot(x$Longitude, x$Latitude)
+
+```
+
+## A subset of the data
+
+An East Antarctic subset of the data:
+
+```{r}
+xsub <- x[x$Longitude >= 50 & x$Longitude <= 150, ]
+
+SOmap(trim = -40)
+SOplot(xsub$Longitude, xsub$Latitude)
+```
+
+Maybe better on something other than full polar-stereo projection?
+
+```{r}
+SOmap_auto(xsub$Longitude, xsub$Latitude, input_lines = FALSE)
+
+```
+
+## More complicated
+
+```{r}
+library(ggplot2)
+## make a base ggplot2 map
+p <- SOgg(SOmap(trim = -40))
+
+## get projected coordinates for our data
+px <- SOproj(x$Longitude, x$Latitude, target = p$projection)
+x <- cbind(x, coordinates(px))
+
+## plot the map and add points with colour by ship code
+plot(p) + geom_point(data = x, aes(colour = `Ship Code`))
+
+```
+
+## Other R stuff
+
+The [SOmap package](https://github.com/AustralianAntarcticDivision/) is part of a larger suite of packages to support science in the Southern Ocean and Antarctica. See the [SCAR/rOpenSci initiative](https://ropensci.org/blog/2018/11/13/antarctic/) for more information.
+
+The [RAADtools](https://github.com/AustralianAntarcticDivision/raadtools) package provides tools for working with a suite of (mostly Southern Ocean) environmental data.
+
+Using the last 1000 rows only as an example, we use `raadtools` to extract time- and location-matched sea surface height anomaly data:
+
+```{r}
+library(raadtools)
+
+xsub <- tail(x, 1000)
+xsub$SSHA <- extract(readssh, tail(x[, c("Longitude", "Latitude", "date")], 1000), anomaly = TRUE)
+```
+
+Plotted against total abundance:
+
+```{r}
+ggplot(xsub, aes(SSHA, `Total abundance`)) + geom_point() + theme_bw()
+
+```
+
