@@ -418,7 +418,7 @@ plot(p) + geom_point(data = x, aes(colour = `Ship Code`))
 The [SOmap package](https://github.com/AustralianAntarcticDivision/) is
 part of a larger suite of packages to support science in the Southern
 Ocean and Antarctica. See the [SCAR/rOpenSci
-initiative](https://ropensci.org/blog/2018/11/13/antarctic/) for more
+initiative](https://scar.github.io/ropensci/) for more
 information.
 
 The
