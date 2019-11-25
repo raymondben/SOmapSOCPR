@@ -7,6 +7,8 @@ Ben Raymond, AAD
 
 November 2019
 
+See also the SOmap section of the notes from [this R workshop](https://scar.github.io/EGABIcourse19/mapping.html#somap).
+
 ## Preparation
 
 Install some packages if necessary:
